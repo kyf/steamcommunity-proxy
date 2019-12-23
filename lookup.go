@@ -18,7 +18,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func DnsLookUp(domainName string, dnsList map[string]string) (net.IP, error) {
+func DnsLookUp(domainName string, dnsList map[string]string, logger *log.Logger) (net.IP, error) {
 	client := &dns.Client{Net: "tcp"}
 	msg := &dns.Msg{}
 	msg.SetQuestion(domainName+".", dns.TypeA)
@@ -27,11 +27,11 @@ func DnsLookUp(domainName string, dnsList map[string]string) (net.IP, error) {
 		for i := 1; i <= RETRY; i++ {
 			r, t, err := client.Exchange(msg, dnsAddress)
 			if err == nil && len(r.Answer) > 0 {
-				log.Printf("使用%s解析域名成功，耗时: %v\n", dnsName, t)
+				logger.Printf("使用%s解析域名成功，耗时: %v\n", dnsName, t)
 				return r.Answer[rand.Int()%len(r.Answer)].(*dns.A).A, nil
 			}
 		}
-		log.Printf("使用%s解析域名失败...", dnsName)
+		logger.Printf("使用%s解析域名失败...", dnsName)
 	}
 	return nil, errors.New("域名解析失败")
 }

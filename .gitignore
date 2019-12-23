@@ -15,4 +15,5 @@
 # vendor/
 *.syso
 *.exe
+log/
 #

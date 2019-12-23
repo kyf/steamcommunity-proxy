@@ -12,6 +12,11 @@ const (
 	key  = "./certs/steamcommunity.key"
 )
 
+var (
+	ls  net.Listener
+	sig = make(chan int, 1)
+)
+
 func startService(ip string, logger *log.Logger) {
 	cfg := &tls.Config{}
 	cfg.Certificates = make([]tls.Certificate, 1)
@@ -21,7 +26,7 @@ func startService(ip string, logger *log.Logger) {
 		logger.Printf("load cert error is %s", err.Error())
 		return
 	}
-	ls, err := tls.Listen("tcp", ":443", cfg)
+	ls, err = tls.Listen("tcp", ":443", cfg)
 	if err != nil {
 		logger.Printf("listen local error %s", err.Error())
 		return
@@ -52,6 +57,24 @@ func handleConn(conn net.Conn, ip string, logger *log.Logger) {
 	}
 	defer remote.Close()
 
+	go func() {
+		for _ = range sig {
+			conn.Close()
+			remote.Close()
+			logger.Printf("close connections ...")
+		}
+	}()
 	go io.Copy(remote, conn)
 	io.Copy(conn, remote)
+}
+
+func stopService(logger *log.Logger) {
+	err := ls.Close()
+	if err != nil {
+		logger.Printf("stop service error is %s", err.Error())
+		return
+	}
+	sig <- 1
+
+	logger.Printf("stop service ...")
 }

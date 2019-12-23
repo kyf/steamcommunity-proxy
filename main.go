@@ -21,6 +21,8 @@ var (
 	}
 
 	logger *log.Logger
+
+	domainName = "steamcommunity.com"
 )
 
 const (
@@ -37,12 +39,13 @@ func handleExit(exit chan struct{}) {
 func handleStart(start chan struct{}) {
 	logger.Printf("start proxy ...")
 	for _ = range start {
+		var ipAddr string
 		StartMenu.Disable()
-		address, err := ascf.DnsLookUp(domainName, dnsList)
+		address, err := DnsLookUp(domainName, dnsList, logger)
 		if err == nil && address != nil {
 			ipAddr = address.String()
 		} else {
-			address, err = ascf.HttpLookup(domainName)
+			address, err = HttpLookup(domainName)
 			if err == nil && address != nil {
 				ipAddr = address.String()
 			}
@@ -57,20 +60,21 @@ func handleStart(start chan struct{}) {
 			continue
 		}
 
+		logger.Printf("get ip is %s", ipAddr)
 		addHosts()
-		go startService(ip, logger)
+		go startService(ipAddr, logger)
 		StopMenu.Enable()
 	}
 }
 
 func addHosts() {
-	if err := ascf.AddHosts("127.0.0.1", domainName); err != nil {
+	if err := AddHosts("127.0.0.1", domainName); err != nil {
 		logger.Fatal(err)
 	}
 }
 
 func removeHosts() {
-	if err := ascf.RemoveHosts("127.0.0.1", domainName); err != nil {
+	if err := RemoveHosts("127.0.0.1", domainName); err != nil {
 		logger.Fatal(err)
 	}
 }
@@ -78,7 +82,8 @@ func removeHosts() {
 func handleStop(stop chan struct{}) {
 	for _ = range stop {
 		StopMenu.Disable()
-		go stopServer(logger)
+		go stopService(logger)
+		removeHosts()
 		StartMenu.Enable()
 	}
 }
@@ -105,6 +110,7 @@ func trayReady() {
 	go handleStart(StartMenu.ClickedCh)
 	go handleStop(StopMenu.ClickedCh)
 	go handleExit(exit.ClickedCh)
+	StartMenu.ClickedCh <- struct{}{}
 }
 
 func trayExit() {
@@ -125,7 +131,7 @@ func main() {
 		removeHosts()
 	}()
 
-	logger, err = log.New(writer, LOG_PREFIX, log.LstdFlags)
+	logger = log.New(writer, LOG_PREFIX, log.LstdFlags)
 	if err != nil {
 		panic(err)
 		return
