@@ -16,4 +16,6 @@
 *.syso
 *.exe
 log/
+deploy
+ui/
 #

@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"time"
 
-	"github.com/getlantern/systray"
+	"github.com/kyf/systray"
+	"github.com/lxn/walk"
 )
 
 var (
-	StartMenu *systray.MenuItem
-	StopMenu  *systray.MenuItem
+	StartMenu       *systray.MenuItem
+	StopMenu        *systray.MenuItem
+	startBt, exitBt *walk.PushButton
 
 	dnsList = map[string]string{
 		"OpenDNS_1":    "208.67.222.222:5353",
@@ -23,10 +26,13 @@ var (
 	logger *log.Logger
 
 	domainName = "steamcommunity.com"
+	ui_index   = "http://127.0.0.1:" + UI_PORT
 )
 
 const (
-	LOG_PREFIX = "[游戏便当]"
+	LOG_PREFIX    = "[游戏便当]"
+	title         = "游戏便当"
+	width, height = 270, 330
 )
 
 func handleExit(exit chan struct{}) {
@@ -95,6 +101,11 @@ func handleAboutus(about chan struct{}) {
 	}
 }
 
+func handleUI() {
+	cmd := exec.Command("explorer.exe", ui_index)
+	cmd.Start()
+}
+
 func trayReady() {
 	systray.SetIcon(TrayIcon)
 	systray.SetTitle("开始")
@@ -111,10 +122,50 @@ func trayReady() {
 	go handleStop(StopMenu.ClickedCh)
 	go handleExit(exit.ClickedCh)
 	StartMenu.ClickedCh <- struct{}{}
+	window := systray.GetWindow()
+	if window != nil {
+		window.SetMinMaxSizePixels(walk.Size{width, height}, walk.Size{width, height})
+		winIco, err := walk.Resources.Image("youxibd.ico")
+		if err == nil {
+			window.SetIcon(winIco)
+		}
+	}
+	notifyIcon := systray.GetNotifyIcon()
+	if notifyIcon != nil {
+		notifyIcon.MouseUp().Attach(func(x, y int, button walk.MouseButton) {
+			if button == walk.LeftButton {
+				//systray.ShowAppWindow(ui_index)
+				handleUI()
+			}
+		})
+	}
+	//systray.ShowAppWindow(ui_index)
+	checkFirst(window)
+	go startUI()
+	handleUI()
 }
 
 func trayExit() {
 
+}
+
+func checkFirst(window *walk.MainWindow) {
+	_, err := ioutil.ReadFile("./deploy")
+	if err != nil {
+		if os.IsNotExist(err) {
+			walk.MsgBox(window, "提示", "请确认添加授权证书，以保证访问正常", walk.MsgBoxIconInformation)
+			output, err := exec.Command("./certs/certmgr.exe", "/c", "/add", "./certs/steamcommunityCA.pem", "/s", "root").Output()
+			if err != nil {
+				logger.Printf("add ca error:%s, output is %s", err.Error(), string(output))
+				return
+			}
+			log.Print(string(output))
+			ioutil.WriteFile("./deploy", []byte(""), os.ModePerm)
+		} else {
+			logger.Printf("read deploy error %s", err.Error())
+		}
+		return
+	}
 }
 
 func main() {
@@ -136,5 +187,5 @@ func main() {
 		panic(err)
 		return
 	}
-	systray.Run(trayReady, trayExit)
+	systray.RunWithAppWindow(title, width, height, trayReady, trayExit)
 }
