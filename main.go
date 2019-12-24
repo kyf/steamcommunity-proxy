@@ -182,6 +182,7 @@ func main() {
 		removeHosts()
 	}()
 
+	go startLogService()
 	logger = log.New(writer, LOG_PREFIX, log.LstdFlags)
 	if err != nil {
 		panic(err)

