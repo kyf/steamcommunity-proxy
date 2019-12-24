@@ -59,7 +59,8 @@ func (this *Server80) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func start80() {
-	ls80, err := net.Listen("tcp", ":80")
+	var err error
+	ls80, err = net.Listen("tcp", ":80")
 	if err != nil {
 		logger.Printf("start 80service error %s", err.Error())
 		return
