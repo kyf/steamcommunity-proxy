@@ -108,8 +108,8 @@ func handleUI() {
 
 func trayReady() {
 	systray.SetIcon(TrayIcon)
-	systray.SetTitle("开始")
-	systray.SetTooltip("游戏补丁")
+	systray.SetTitle(title)
+	systray.SetTooltip(title)
 	abus := systray.AddMenuItem("关于我们", "")
 	systray.AddSeparator()
 	StopMenu = systray.AddMenuItem("停止代理", "")
@@ -182,7 +182,6 @@ func main() {
 		removeHosts()
 	}()
 
-	go startLogService()
 	logger = log.New(writer, LOG_PREFIX, log.LstdFlags)
 	if err != nil {
 		panic(err)
