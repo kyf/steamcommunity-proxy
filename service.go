@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os/exec"
 
 	"github.com/kyf/martini"
 	mylog "github.com/kyf/util/log"
@@ -93,12 +94,24 @@ func handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	jsonTo(w, true, "ok", status)
 }
 
+func handleAddCA(w http.ResponseWriter, r *http.Request) {
+	output, err := exec.Command("./certs/certmgr.exe", "/c", "/add", "./certs/steamcommunityCA.pem", "/s", "root").Output()
+	if err != nil {
+		logger.Printf("add ca error:%s, output is %s", err.Error(), string(output))
+		jsonTo(w, false, err.Error())
+		return
+	}
+
+	jsonTo(w, true, "ok", string(output))
+}
+
 func startUI() {
 	m := martini.Classic()
 	m.Map(mylog.DefaultLogger)
 	m.Use(martini.Static("./ui"))
 	m.Get("/api/service/status/:status", handleServiceStatus)
 	m.Get("/api/service/getstatus", handleGetStatus)
+	m.Get("/api/service/addca", handleAddCA)
 	m.RunOnAddr(":" + UI_PORT)
 }
 
