@@ -1,9 +1,11 @@
 <template>
   <div class="page-steam">
     <div class="hero">
-      <img
+      <div
           class="bg"
-          :src="images.bg">
+          :style="{
+            backgroundImage: `url(${images.bg})`,
+          }"></div>
       <div class="content">
         <h1>
           <img
