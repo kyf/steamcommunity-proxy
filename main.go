@@ -31,7 +31,7 @@ var (
 
 const (
 	LOG_PREFIX    = "[游戏便当]"
-	title         = "游戏便当"
+	title         = "游戏便当Steam社区加速"
 	width, height = 270, 330
 )
 
